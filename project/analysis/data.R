@@ -6,18 +6,19 @@ library(tidyr)
 
 # Read the data files
 
-df_country <- read.csv("../data/country.csv")
+df_country <- read.csv("country.csv")
 
+View(df_country)
 
 euros_csv <- list.files(
-  path = "../data/euro",
+  path = "./euro",
   pattern = "\\.csv$",
   full.names = TRUE
 )
 
 read_csv <- function(file) {
   df <- read.csv(file)
-
+  
   df[] <- lapply(df, as.character)
   return(df)
 }
@@ -34,20 +35,20 @@ df_euros <- df_euros %>% mutate(
   away_penalty = as.integer(away_penalty),
   home_score_total = as.integer(home_score_total),
   away_score_total = as.integer(away_score_total),
-
+  
   winner_reason = as.factor(winner_reason),
-
+  
   year = as.integer(year),
   date = ymd(date),
   date_time = ymd_hms(date_time),
   utc_offset_hours = as.integer(utc_offset_hours),
   group_name = as.factor(group_name),
   matchday_name = as.factor(matchday_name),
-
+  
   type = as.factor(type),
   round = as.factor(round),
   round_mode = as.factor(round_mode),
-
+  
   # Fix more columns if needed
 )
 
@@ -123,3 +124,27 @@ final_df <- final_df %>%
   filter(year != 2024)
 
 tail(final_df)
+
+
+
+total_goals <- df_euros_modern %>%
+  pivot_longer(cols = c(home_team, away_team), names_to = "team_type", values_to = "country") %>%
+  mutate(
+    goals = if_else(team_type == "home_team", home_score, away_score)  
+  ) %>%
+  group_by(year, country) %>%
+  summarise(total_goals = sum(goals, na.rm = TRUE), .groups = "drop") 
+
+
+final_df <- left_join(final_df, total_goals, by = c("year", "country"))
+
+
+final_df <- final_df %>%
+  mutate(
+    goals_per_game = total_goals / total_games  
+  )
+
+View(final_df)
+
+
+
